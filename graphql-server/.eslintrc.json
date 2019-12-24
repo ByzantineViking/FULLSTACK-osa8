@@ -22,6 +22,6 @@
         "react"
     ],
     "rules": {
-        "indent": ["error", 8]
+        "indent": ["error", 4]
     }
 }
