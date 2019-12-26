@@ -2,9 +2,18 @@ import React, { useState } from 'react'
 import Authors from './components/Authors'
 import Books from './components/Books'
 import NewBook from './components/NewBook'
+import LoginForm from './components/LoginForm'
 import { gql } from 'apollo-boost'
-import { useQuery, useMutation } from '@apollo/react-hooks'
+import { useQuery, useMutation, useApolloClient } from '@apollo/react-hooks'
 
+
+const LOGIN = gql`
+  mutation login($username: String!, $password: String!) {
+    login(username: $username, password: $password) {
+      value
+    }
+  }
+`
 const ALL_AUTHORS = gql`
 {
   allAuthors {
@@ -70,11 +79,12 @@ const SET_BORN = gql`
 `
 
 const App = () => {
+  const client = useApolloClient()
   const authors = useQuery(ALL_AUTHORS)
   const books = useQuery(ALL_BOOKS)
   const [page, setPage] = useState('authors')
   const [errorMessage, setErrorMessage] = useState(null)
-
+  const [token, setToken] = useState(null)
   const handleError = (error) => {
     console.log(error.message)
     setErrorMessage(error.message)
@@ -82,8 +92,15 @@ const App = () => {
       setErrorMessage(null)
     }, 10000)
   }
-
-
+  const logout = () => {
+    setToken(null)
+    localStorage.clear()
+    // Clears cache, which might contain stuff only user has access to
+    client.resetStore()
+  }
+  const [login] = useMutation(LOGIN, {
+    onError: handleError
+  })
   const [addBook] = useMutation(CREATE_BOOK, {
     onError: handleError,
     refetchQueries: [{ query: ALL_BOOKS }],
@@ -95,7 +112,11 @@ const App = () => {
     refetchQueries: [{ query: ALL_AUTHORS }],
     errorPolicy: 'all'
   })
-
+  const errorNotification = () => errorMessage &&
+  <div style={{ color: 'red' }}>
+    {errorMessage}
+  </div>
+  
   return (
     <div>
        {errorMessage &&
@@ -106,23 +127,34 @@ const App = () => {
       <div>
         <button onClick={() => setPage('authors')}>authors</button>
         <button onClick={() => setPage('books')}>books</button>
-        <button onClick={() => setPage('add')}>add book</button>
+        {token ? <button onClick={() => setPage('add')}>add book</button> : <div></div>}
+        {token ?
+          <button onClick={() => logout()}>logout</button> :
+          <button onClick={() => setPage('login')}>login</button>
+        }
       </div>
 
       <Authors 
         result={authors}
         show={page === 'authors'}
         setBorn={setBorn}
+        token={token}
 
       />
 
       <Books result = {books}
         show={page === 'books'}
       />
-
       <NewBook 
         show={page === 'add'}
         addBook = {addBook}
+      />
+      <LoginForm
+        show={page=== 'login'}
+        login={login}
+        setToken={(token) => setToken(token)}
+        errorNotification={errorNotification}
+        setPage={setPage}
       />
 
     </div>

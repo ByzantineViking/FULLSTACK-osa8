@@ -1,11 +1,10 @@
 import React, { useState } from 'react'
-import { useQuery, useApolloClient } from '@apollo/react-hooks'
 import Select from 'react-select'
 
-const Authors = ({ show, result, setBorn }) => {
+const Authors = ({ show, result, setBorn, token }) => {
   const [name, setName] = useState('')
   const [year, setYear] = useState('')
-  const client = useApolloClient()
+  
   
   const submit = async (event) => {
     event.preventDefault()
@@ -25,6 +24,21 @@ const Authors = ({ show, result, setBorn }) => {
   }
   const authors = result.data.allAuthors
   const nameOption = authors.map(a => ({ value: a.name, label: a.name}) )
+  const birthYearForm = (
+    <div>
+      <div>Set birth year of author</div>
+      <form onSubmit={submit}>
+        <Select value={name} onChange={({value, label}) => setName({value: value, label: label})} options={nameOption}>
+
+        </Select>
+        <div>
+          born
+          <input value={year} type='number' onChange={({target}) => setYear(target.value)}></input>
+        </div>
+        <button type='submit'>set</button>
+      </form>
+    </div>
+  )
   return (
     <div>
       <h2>authors</h2>
@@ -49,17 +63,7 @@ const Authors = ({ show, result, setBorn }) => {
         </tbody>
       </table>
       <div style={{marginTop: "10px"}}></div>
-      <div>Set birth year of author</div>
-      <form onSubmit={submit}>
-        <Select value={name} onChange={({value, label}) => setName({value: value, label: label})} options={nameOption}>
-
-        </Select>
-        <div>
-          born
-          <input value={year} type='number' onChange={({target}) => setYear(target.value)}></input>
-        </div>
-        <button type='submit'>set</button>
-      </form>
+      {token ? birthYearForm: <div>Log in to fill correct birth years.</div>}
 
     </div>
   )
