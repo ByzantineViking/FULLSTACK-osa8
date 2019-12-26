@@ -76,6 +76,7 @@ const App = () => {
   const [errorMessage, setErrorMessage] = useState(null)
 
   const handleError = (error) => {
+    console.log(error.message)
     setErrorMessage(error.message)
     setTimeout(() => {
       setErrorMessage(null)
@@ -85,7 +86,8 @@ const App = () => {
 
   const [addBook] = useMutation(CREATE_BOOK, {
     onError: handleError,
-    refetchQueries: [{ query: ALL_BOOKS }]
+    refetchQueries: [{ query: ALL_BOOKS }],
+    errorPolicy: 'all'
   })
 
   const [setBorn] = useMutation(SET_BORN, {
