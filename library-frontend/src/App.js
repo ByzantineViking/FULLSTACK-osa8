@@ -87,12 +87,24 @@ const ME = gql`
   }
 }
 `
+const FILTERED_BOOKS = gql`
+  query findMyGenre($myFavorite: String!) {
+    allBooks(genre: $myFavorite) {
+      title
+      published
+      author {
+        name
+      }
+    }
+  }
+`
 
 const App = () => {
   const client = useApolloClient()
   const authors = useQuery(ALL_AUTHORS)
   const books = useQuery(ALL_BOOKS)
   const me = useQuery(ME)
+  const [favoriteBooks, setFavoriteBooks] = useState(null)
   const [page, setPage] = useState('authors')
   const [errorMessage, setErrorMessage] = useState(null)
   const [token, setToken] = useState(null)
@@ -118,7 +130,6 @@ const App = () => {
     refetchQueries: [{ query: ALL_BOOKS }],
     errorPolicy: 'all'
   })
-
   const [setBorn] = useMutation(SET_BORN, {
     onError: handleError,
     refetchQueries: [{ query: ALL_AUTHORS }],
@@ -176,6 +187,11 @@ const App = () => {
         books={books}
         me={me}
         show={page === 'recommendations'}
+        client={client}
+        FILTERED_BOOKS={FILTERED_BOOKS}
+        favoriteBooks = {favoriteBooks}
+        setFavoriteBooks= {setFavoriteBooks}
+        handleError= {handleError}
       />
     </div>
   )
