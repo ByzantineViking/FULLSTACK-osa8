@@ -3,6 +3,7 @@ import Authors from './components/Authors'
 import Books from './components/Books'
 import NewBook from './components/NewBook'
 import LoginForm from './components/LoginForm'
+import Recommendations from './components/Recommendations'
 import { gql } from 'apollo-boost'
 import { useQuery, useMutation, useApolloClient } from '@apollo/react-hooks'
 
@@ -28,6 +29,7 @@ const ALL_BOOKS = gql`
   allBooks {
     title
     published
+    genres
     author {
       name
       born
@@ -77,14 +79,24 @@ const SET_BORN = gql`
       }
   }
 `
+const ME = gql`
+{
+  me {
+    username
+    favoriteGenre
+  }
+}
+`
 
 const App = () => {
   const client = useApolloClient()
   const authors = useQuery(ALL_AUTHORS)
   const books = useQuery(ALL_BOOKS)
+  const me = useQuery(ME)
   const [page, setPage] = useState('authors')
   const [errorMessage, setErrorMessage] = useState(null)
   const [token, setToken] = useState(null)
+  const [filter, setFilter] = useState('')
   const handleError = (error) => {
     console.log(error.message)
     setErrorMessage(error.message)
@@ -132,6 +144,7 @@ const App = () => {
           <button onClick={() => logout()}>logout</button> :
           <button onClick={() => setPage('login')}>login</button>
         }
+        <button onClick={() => setPage('recommendations')}>recommendations</button>
       </div>
 
       <Authors 
@@ -142,8 +155,11 @@ const App = () => {
 
       />
 
-      <Books result = {books}
+      <Books 
+        result = {books}
         show={page === 'books'}
+        filter={filter}
+        setFilter={setFilter}
       />
       <NewBook 
         show={page === 'add'}
@@ -156,7 +172,11 @@ const App = () => {
         errorNotification={errorNotification}
         setPage={setPage}
       />
-
+      <Recommendations
+        books={books}
+        me={me}
+        show={page === 'recommendations'}
+      />
     </div>
   )
 }

@@ -1,11 +1,12 @@
 import React from 'react'
 
-const Books = ({ result, show }) => {
+const Books = ({ result, show, filter, setFilter }) => {
   if (!show) {
     return null
   }
 
   const books = result.data.allBooks
+  const genres = [...new Set(books.map(b => b.genres).flat())]
   return (
     <div>
       <h2>books</h2>
@@ -21,7 +22,11 @@ const Books = ({ result, show }) => {
               published
             </th>
           </tr>
-          {books.map(a =>
+          {books
+            .filter(a => 
+              filter ? a.genres.includes(filter) : true
+            ) 
+            .map(a =>
             <tr key={a.title}>
               <td>{a.title}</td>
               <td>{a.author.name}</td>
@@ -30,6 +35,11 @@ const Books = ({ result, show }) => {
           )}
         </tbody>
       </table>
+      <div>
+        {genres.map(g => 
+          <button key={g} onClick={() => setFilter(g)}>{g}</button>
+        )}
+      </div>
     </div>
   )
 }
