@@ -5,8 +5,22 @@ import NewBook from './components/NewBook'
 import LoginForm from './components/LoginForm'
 import Recommendations from './components/Recommendations'
 import { gql } from 'apollo-boost'
-import { useQuery, useMutation, useApolloClient } from '@apollo/react-hooks'
+import { useQuery, useMutation, useApolloClient, useSubscription } from '@apollo/react-hooks'
 
+const BOOK_DETAILS = gql`
+  fragment BookDetails on Book {
+    title
+    published
+    genres
+    id
+    author {
+      name
+      born
+      bookCount
+    }
+    genres
+  }
+`
 
 const LOGIN = gql`
   mutation login($username: String!, $password: String!) {
@@ -27,16 +41,10 @@ const ALL_AUTHORS = gql`
 const ALL_BOOKS = gql`
 { 
   allBooks {
-    title
-    published
-    genres
-    author {
-      name
-      born
-      bookCount
-    }
+    ...BookDetails
   }
 }
+${BOOK_DETAILS}
 `
 const CREATE_BOOK = gql`
   mutation createBook(
@@ -51,17 +59,18 @@ const CREATE_BOOK = gql`
         author: $author,
         genres: $genres
       ) {
-          title
-          published
-          id
-          author {
-            name
-            born
-            bookCount
-          }
-          genres
+          ...BookDetails
       }
   }
+  ${BOOK_DETAILS}
+`
+const BOOK_ADDED = gql`
+  subscription {
+    bookAdded {
+      ...BookDetails
+    }
+  }
+  ${BOOK_DETAILS}
 `
 const SET_BORN = gql`
   mutation setBorn(
@@ -103,7 +112,9 @@ const App = () => {
   const client = useApolloClient()
   const authors = useQuery(ALL_AUTHORS)
   const books = useQuery(ALL_BOOKS)
-  const me = useQuery(ME)
+  const me = useQuery(ME, {
+    pollInterval: 500
+  })
   const [favoriteBooks, setFavoriteBooks] = useState(null)
   const [page, setPage] = useState('authors')
   const [errorMessage, setErrorMessage] = useState(null)
@@ -116,13 +127,41 @@ const App = () => {
       setErrorMessage(null)
     }, 10000)
   }
+  const updataCacheWith = (addedBook) => {
+    // Don't add book to the cache twice
+    const includedIn = (set, object) =>
+      set.map(p => p.id).includes(object.id)
+    
+    const dataInStore = client.readQuery({ query: ALL_BOOKS })
+    if(!includedIn(dataInStore.allBooks, addedBook)) {
+      dataInStore.allBooks.push(addedBook)
+      client.writeQuery({
+        query: ALL_BOOKS,
+        data: dataInStore
+      })
+    }
+  }
+  const notify = (message) => {
+    window.alert(message)
+  }
+  console.log(me.data)
+  useSubscription(BOOK_ADDED, {
+    onSubscriptionData: ({ subscriptionData }) => {
+      console.log(subscriptionData)
+      const addedBook = subscriptionData.data.bookAdded
+      notify(`${addedBook.title} added`)
+      updataCacheWith(addedBook)
+    }
+  })
   const logout = () => {
     setToken(null)
     localStorage.clear()
     // Clears cache, which might contain stuff only user has access to
     client.resetStore()
+    setFavoriteBooks(null)
   }
   const [login] = useMutation(LOGIN, {
+    refetchQueries: [{ query: ME }],
     onError: handleError
   })
   const [addBook] = useMutation(CREATE_BOOK, {
@@ -135,10 +174,11 @@ const App = () => {
     refetchQueries: [{ query: ALL_AUTHORS }],
     errorPolicy: 'all'
   })
+  
   const errorNotification = () => errorMessage &&
-  <div style={{ color: 'red' }}>
-    {errorMessage}
-  </div>
+    <div style={{ color: 'red' }}>
+      {errorMessage}
+    </div>
   
   return (
     <div>
@@ -152,10 +192,14 @@ const App = () => {
         <button onClick={() => setPage('books')}>books</button>
         {token ? <button onClick={() => setPage('add')}>add book</button> : <div></div>}
         {token ?
-          <button onClick={() => logout()}>logout</button> :
+          <div>
+              <button onClick={() => logout()}>logout</button>
+              <button onClick={() => setPage('recommendations')}>recommendations</button>
+          </div>
+           :
           <button onClick={() => setPage('login')}>login</button>
         }
-        <button onClick={() => setPage('recommendations')}>recommendations</button>
+        
       </div>
 
       <Authors 

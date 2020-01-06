@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react'
 const Recommendations = ({show, books, me, client, FILTERED_BOOKS, favoriteBooks, setFavoriteBooks, handleError}) => {
     const fetchBooks = async () => {
-        if(me.loading || !show)
+        if(me.loading || !me.data.me)
             return null
-        console.log(me)
+        
         const genre = me.data.me.favoriteGenre
         const { data } = await client.query({
             query: FILTERED_BOOKS,
@@ -15,7 +15,7 @@ const Recommendations = ({show, books, me, client, FILTERED_BOOKS, favoriteBooks
     useEffect( () => {
         fetchBooks()
     })
-    if (!show) 
+    if (!show || !favoriteBooks) 
         return null
     
     
